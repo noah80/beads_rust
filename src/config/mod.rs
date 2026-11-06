@@ -91,6 +91,11 @@ pub struct Metadata {
     pub backend: Option<String>,
     #[serde(default)]
     pub deletions_retention_days: Option<u64>,
+    /// Directory below `.beads/` that git tracks as one file per issue in
+    /// place of the JSONL export (see `crate::sync::issue_tree`). Unset keeps
+    /// the classic single tracked JSONL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issue_tree: Option<String>,
 }
 
 fn default_database_filename() -> String {
@@ -108,6 +113,7 @@ impl Default for Metadata {
             jsonl_export: default_jsonl_export_filename(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         }
     }
 }
@@ -8803,6 +8809,7 @@ labels:
             jsonl_export: DEFAULT_JSONL_FILENAME.to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_db_path(&beads_dir, &metadata, None);
@@ -8820,6 +8827,7 @@ labels:
             jsonl_export: DEFAULT_JSONL_FILENAME.to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_db_path(&beads_dir, &metadata, None);
@@ -8851,6 +8859,7 @@ labels:
             jsonl_export: absolute_path.to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_jsonl_path(&beads_dir, &metadata, None);
@@ -8868,6 +8877,7 @@ labels:
             jsonl_export: "relative.jsonl".to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_jsonl_path(&beads_dir, &metadata, None);
@@ -9627,6 +9637,7 @@ routing:
             jsonl_export: "custom.jsonl".to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_jsonl_path(&beads_dir, &metadata, None);
@@ -9649,6 +9660,7 @@ routing:
             jsonl_export: "deletions.jsonl".to_string(),
             backend: None,
             deletions_retention_days: None,
+            issue_tree: None,
         };
 
         let resolved = resolve_jsonl_path(&beads_dir, &metadata, None);

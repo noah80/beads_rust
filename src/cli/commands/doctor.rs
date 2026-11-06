@@ -23747,6 +23747,7 @@ mod tests {
                 jsonl_export: "custom.jsonl".to_string(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 
@@ -23776,6 +23777,7 @@ mod tests {
                 jsonl_export: "custom.jsonl".to_string(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 
@@ -23816,6 +23818,7 @@ mod tests {
                 jsonl_export: external_jsonl.to_string_lossy().into_owned(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 
@@ -23871,6 +23874,7 @@ mod tests {
                 jsonl_export: external_jsonl.to_string_lossy().into_owned(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 
@@ -23916,6 +23920,7 @@ mod tests {
                 jsonl_export: external_jsonl.to_string_lossy().into_owned(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 
@@ -23962,6 +23967,7 @@ mod tests {
                 jsonl_export: external_jsonl.to_string_lossy().into_owned(),
                 backend: None,
                 deletions_retention_days: None,
+                issue_tree: None,
             },
         };
 

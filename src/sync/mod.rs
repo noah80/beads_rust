@@ -9,6 +9,7 @@
 
 mod db_inode_lock;
 pub mod history;
+pub mod issue_tree;
 pub mod path;
 pub mod witness;
 
