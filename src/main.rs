@@ -3,6 +3,7 @@ use beads_rust::cli::{Cli, Commands, OutputFormat, command_requests_robot_json};
 use beads_rust::config;
 use beads_rust::logging::init_logging;
 use beads_rust::output::OutputContext;
+use beads_rust::sync::issue_tree::IssueTreeScope;
 use beads_rust::sync::{
     auto_import_if_stale, auto_import_probe, auto_import_probe_refreshing_witnesses,
 };
@@ -294,6 +295,27 @@ fn run(cli: Cli, json_error_mode: bool) -> Result<i32> {
                     storage_enabled && supports_read_only_fast_open(&cli.command);
             }
         }
+    }
+
+    // Phase 1.25: With a per-issue git tree (metadata `issue_tree`), git
+    // tracks the tree instead of the JSONL. Rebuild the JSONL from a tree
+    // that git changed (pull, merge, checkout) before the staleness probe,
+    // so the ordinary import sees it exactly like a pulled JSONL. Never
+    // during a pending sync merge: that saga owns the JSONL.
+    let reconcile_tree_at_startup = !pending_merge_warning_emitted
+        && match &cli.command {
+            Commands::Sync(args) => !args.merge && !observational_startup,
+            _ => should_auto_import_now,
+        };
+    if reconcile_tree_at_startup
+        && let Some(paths) = ctx.paths.as_ref()
+        && paths.metadata.issue_tree.is_some()
+        && matches!(
+            inspect_pending_sync_merge_for_startup(&paths.db_path),
+            Ok(None)
+        )
+    {
+        reconcile_issue_tree(&ctx, IssueTreeScope::Startup)?;
     }
 
     // Phase 1.5: Acquire exclusive write lock before any DB-family open that
@@ -1266,6 +1288,19 @@ fn run(cli: Cli, json_error_mode: bool) -> Result<i32> {
         }
     }
 
+    // Phase 5.5: Write a JSONL this command published (auto-flush or an
+    // explicit `br sync --flush-only`) into the per-issue git tree, so the
+    // change is visible to git right away. The command already succeeded,
+    // so a failure only warns; the next startup retries the split.
+    if ctx
+        .paths
+        .as_ref()
+        .is_some_and(|paths| paths.metadata.issue_tree.is_some())
+        && let Err(error) = reconcile_issue_tree(&ctx, IssueTreeScope::AfterCommand)
+    {
+        eprintln!("warning: could not update the per-issue git tree: {error}");
+    }
+
     if let Some(err) = beads_rust::output::take_output_serialization_failure() {
         drop(storage_result);
         drop(overrides);
@@ -1747,6 +1782,36 @@ fn pending_sync_merge_no_db_refusal_error(
             state.diagnostic
         ),
     }
+}
+
+/// Reconcile the JSONL with the per-issue git tree named by metadata
+/// `issue_tree`; a no-op without one. Both sides changing to different issue
+/// rows is reported as a sync conflict and leaves both untouched.
+fn reconcile_issue_tree(ctx: &StartupContext, scope: IssueTreeScope) -> Result<()> {
+    let Some(paths) = ctx.paths.as_ref() else {
+        return Ok(());
+    };
+    let Some(tree_name) = paths.metadata.issue_tree.as_deref() else {
+        return Ok(());
+    };
+    let history = ctx.config.as_ref().map_or_else(
+        beads_rust::sync::history::HistoryConfig::default,
+        config::resolved_history_config_from_layer,
+    );
+    let outcome = beads_rust::sync::issue_tree::reconcile_issue_tree(
+        &beads_rust::sync::issue_tree::IssueTreeContext {
+            beads_dir: &paths.beads_dir,
+            jsonl_path: &paths.jsonl_path,
+            tree_name,
+            history,
+        },
+        scope,
+    )?;
+    if let Some(message) = outcome.diverged_message() {
+        return Err(BeadsError::SyncConflict { message });
+    }
+    tracing::debug!(?outcome, ?scope, "issue tree reconciled");
+    Ok(())
 }
 
 fn inspect_pending_sync_merge_for_startup(

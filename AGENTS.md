@@ -327,6 +327,7 @@ beads_rust/
 │   │   ├── mod.rs                 # JSONL import/export, publication, reconcile
 │   │   ├── path.rs                # .beads/ directory discovery
 │   │   ├── history.rs             # Snapshot restore and prune
+│   │   ├── issue_tree.rs          # Opt-in per-issue git tree projection of the JSONL (metadata issue_tree)
 │   │   ├── witness.rs             # Read-only JSONL witness
 │   │   └── db_inode_lock.rs       # Shared opener lease / database-family authority
 │   ├── config/
