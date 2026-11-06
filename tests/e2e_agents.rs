@@ -11,7 +11,7 @@ use common::cli::{BrWorkspace, extract_json_payload, run_br, run_br_with_stdin};
 use serde_json::Value;
 use std::fs;
 
-const START_MARKER: &str = "<!-- br-agent-instructions-v1 -->";
+const START_MARKER: &str = "<!-- br-agent-instructions-v2 -->";
 const END_MARKER: &str = "<!-- end-br-agent-instructions -->";
 const LEGACY_START: &str = "<!-- bv-agent-instructions-v1 -->";
 const LEGACY_END: &str = "<!-- end-bv-agent-instructions -->";

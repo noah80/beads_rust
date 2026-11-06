@@ -47,7 +47,17 @@ Claiming work:
 Completing work:
   br close <id> --reason "Completed: <specific proof>" --json
   br sync --flush-only
-  Stage code and .beads changes together outside br.
+  Stage code and .beads changes together outside br: git add .beads/ picks
+  up new per-issue files as well as changed ones.
+
+Per-issue tree (when .beads/metadata.json sets issue_tree):
+  Git tracks one file per issue, .beads/<issue_tree>/<id>.jsonl, holding that
+  issue's export line; .beads/issues.jsonl and issues.history.jsonl stay local
+  and untracked. br writes the tree after each export and rebuilds
+  issues.jsonl from it when a pull, merge, or checkout changed it, so the
+  commands above are unchanged. A merge conflict in one issue file is resolved
+  by keeping one complete JSON line; br refuses files with conflict markers.
+  br vcs-status reports issues.jsonl as ignored in this layout.
 
 Discovery:
   br schema commands --format json
@@ -167,6 +177,8 @@ mod tests {
     #[test]
     fn guide_scopes_git_authority_and_discovers_vcs_status() {
         assert!(GUIDE.contains("Only an explicit br vcs-status request"));
+        assert!(GUIDE.contains("git add .beads/"));
+        assert!(GUIDE.contains("Per-issue tree"));
         assert!(
             CANONICAL_COMMANDS
                 .iter()

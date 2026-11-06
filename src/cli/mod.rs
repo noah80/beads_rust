@@ -954,6 +954,17 @@ SAFETY GUARDS:
     • --rebuild is import-only and treats JSONL as authoritative
     • Removes DB entries absent from JSONL while preserving tombstones
 
+PER-ISSUE TREE (opt-in, \"issue_tree\" in .beads/metadata.json):
+  Git tracks one file per issue (.beads/<issue_tree>/<id>.jsonl) instead of
+  issues.jsonl, so branches that change different issues merge cleanly.
+  issues.jsonl stays local and untracked; every mode above still works on it.
+  • After an export, br writes changed issues into the tree
+  • Before a command, br rebuilds issues.jsonl when git changed the tree
+  • Files with conflict markers are refused; keep one complete JSON line
+  • If both sides changed differently, br changes neither (sync conflict)
+  Stage with `git add .beads/` so new issue files are included.
+  See docs/VCS_INTEGRATION.md for enabling it.
+
 VERBOSE LOGGING:
   -v     Show INFO-level safety guard decisions
   -vv    Show DEBUG-level file operations
@@ -3046,7 +3057,9 @@ pub const DEFAULT_WITNESS_PARALLELISM: usize = 64;
 pub struct SyncArgs {
     /// Export database to JSONL (DB → .beads/issues.jsonl)
     ///
-    /// Writes all issues from `SQLite` database to JSONL format.
+    /// Writes all issues from `SQLite` database to JSONL format. With a
+    /// per-issue tree configured, the changed rows are then written to
+    /// `.beads/<issue_tree>/<id>.jsonl` as well.
     #[arg(long, group = "sync_action")]
     pub flush_only: bool,
 

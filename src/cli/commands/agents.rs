@@ -13,10 +13,10 @@ use std::path::{Path, PathBuf};
 
 /// Current version of the agent instructions blurb.
 /// Increment this when making breaking changes to the blurb format.
-pub const BLURB_VERSION: u8 = 1;
+pub const BLURB_VERSION: u8 = 2;
 
 /// Start marker for the blurb (includes version).
-pub const BLURB_START_MARKER: &str = "<!-- br-agent-instructions-v1 -->";
+pub const BLURB_START_MARKER: &str = "<!-- br-agent-instructions-v2 -->";
 
 /// End marker for the blurb.
 pub const BLURB_END_MARKER: &str = "<!-- end-br-agent-instructions -->";
@@ -25,7 +25,7 @@ pub const BLURB_END_MARKER: &str = "<!-- end-br-agent-instructions -->";
 pub const SUPPORTED_AGENT_FILES: &[&str] = &["AGENTS.md", "CLAUDE.md", "agents.md", "claude.md"];
 
 /// The agent instructions blurb to append to AGENTS.md files.
-pub const AGENT_BLURB: &str = r#"<!-- br-agent-instructions-v1 -->
+pub const AGENT_BLURB: &str = r#"<!-- br-agent-instructions-v2 -->
 
 ---
 
@@ -69,6 +69,7 @@ br sync --status      # Check sync status
 - **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers 0-4, not words)
 - **Types**: task, bug, feature, epic, chore, docs, question
 - **Blocking**: `br dep add <issue> <depends-on>` to add dependencies
+- **Per-issue tree**: if `.beads/metadata.json` sets `issue_tree` (e.g. `"issues"`), git tracks one file per issue (`.beads/issues/<id>.jsonl`) and `.beads/issues.jsonl` stays local and untracked. A new issue is a new file, so stage `.beads/` as a whole. br picks up tree changes from a pull or merge on its next command.
 
 ### Session Protocol
 
@@ -78,9 +79,12 @@ br sync --status      # Check sync status
 git status              # Check what changed
 git add <files>         # Stage code changes
 br sync --flush-only    # Export beads changes to JSONL
+git add .beads/         # Stage beads changes (new issue files too)
 git commit -m "..."     # Commit everything
 git push                # Push to remote
 ```
+
+If a merge conflicts inside one issue file under `.beads/issues/`, keep one complete JSON line in that file; br refuses to read a file that still holds conflict markers.
 
 ### Best Practices
 
@@ -1712,7 +1716,7 @@ mod tests {
             format!("Example start marker: <!-- br-agent-instructions-v9 -->\n\n{AGENT_BLURB}");
 
         assert!(contains_blurb(&content));
-        assert_eq!(get_blurb_version(&content), 1);
+        assert_eq!(get_blurb_version(&content), BLURB_VERSION);
     }
 
     #[test]
@@ -1775,9 +1779,28 @@ mod tests {
         let detection = detect_agent_file(temp_dir.path());
         assert!(detection.found());
         assert!(detection.has_blurb);
-        assert_eq!(detection.blurb_version, 1);
+        assert_eq!(detection.blurb_version, BLURB_VERSION);
         assert!(!detection.needs_blurb());
         assert!(!detection.needs_upgrade());
+    }
+
+    #[test]
+    fn test_v1_blurb_needs_upgrade_and_update_adds_tree_staging() {
+        let temp_dir = crate::util::test_helpers::isolated_temp_dir();
+        let v1 = "# Agents\n\n<!-- br-agent-instructions-v1 -->\nold\n<!-- end-br-agent-instructions -->\n";
+        fs::write(temp_dir.path().join("AGENTS.md"), v1).unwrap();
+
+        let detection = detect_agent_file(temp_dir.path());
+        assert!(detection.has_blurb);
+        assert_eq!(detection.blurb_version, 1);
+        assert!(detection.needs_upgrade());
+
+        let updated = update_blurb(v1);
+        assert!(updated.starts_with("# Agents\n"));
+        assert!(!updated.contains("br-agent-instructions-v1"));
+        assert_eq!(updated.matches(BLURB_START_MARKER).count(), 1);
+        assert!(updated.contains("git add .beads/"));
+        assert!(updated.contains("issue_tree"));
     }
 
     #[test]
@@ -1928,7 +1951,7 @@ mod tests {
         let legacy_content = "# Agents\n\n<!-- bv-agent-instructions-v1 -->\nold\n<!-- end-bv-agent-instructions -->\n";
         let result = update_blurb(legacy_content);
         assert!(!result.contains("bv-agent-instructions"));
-        assert!(result.contains("br-agent-instructions-v1"));
+        assert!(result.contains(BLURB_START_MARKER));
     }
 
     #[test]

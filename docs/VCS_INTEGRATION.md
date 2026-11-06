@@ -98,6 +98,11 @@ git add .beads/
 git commit -m "beads: track issues as a per-issue tree"
 ```
 
+If the project's `AGENTS.md` (or `CLAUDE.md`) carries the br instructions
+block, refresh it with `br agents --update`. Version 2 of the block tells agents
+to stage `.beads/` as a whole, which picks up the new file each `br create`
+adds to the tree.
+
 The workflow-history companion (`issues.history.jsonl`, see
 [SYNC_SAFETY.md](SYNC_SAFETY.md#portable-workflow-history)) is one file
 rewritten on every export, so leaving it tracked would bring back a conflict
