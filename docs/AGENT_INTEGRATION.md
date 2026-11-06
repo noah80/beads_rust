@@ -39,6 +39,11 @@ This guide covers how AI coding agents can effectively use `br` (beads_rust) for
 3. **Parse structured errors** for recovery hints
 4. **Use `br ready`** to find actionable work
 5. **Run a final export check** with `br sync --flush-only` before committing `.beads/`
+6. **Stage `.beads/` as a whole** (`git add .beads/`). With the opt-in per-issue
+   tree (`issue_tree` in `.beads/metadata.json`, see
+   [VCS_INTEGRATION.md](VCS_INTEGRATION.md#per-issue-tree-conflict-free-merges)),
+   each issue is its own file under `.beads/issues/`, and a newly created issue
+   is a new, untracked file that staging individual paths would miss.
 
 ---
 

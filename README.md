@@ -1386,6 +1386,12 @@ br ready  # Shows br-A
 
 ### Q: How do I handle merge conflicts in JSONL?
 
+If stacked or parallel branches keep conflicting on neighbouring lines of
+`.beads/issues.jsonl`, enable the opt-in per-issue tree: git then tracks one
+file per issue, so only two branches changing the *same* issue conflict, in
+that issue's file. See
+[VCS_INTEGRATION.md](docs/VCS_INTEGRATION.md#per-issue-tree-conflict-free-merges).
+
 JSONL is line-based, so conflicts are usually easy to resolve:
 
 ```bash

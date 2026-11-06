@@ -1954,6 +1954,12 @@ br sync [OPTIONS]
 - Both modes emit a versioned receipt (`br.sync.reconcile.v1` — see `br schema all`, key `SyncReconcileReceipt`) with source/target witnesses, created/updated/skipped/deleted counts (deleted is always 0), bounded id previews, relation counts, and before/after event counts.
 - `--force`, `--rename-prefix`, and `--orphans` are rejected with `--reconcile`; dangling dependency references are cleaned only from rows the reconcile itself wrote.
 
+**Per-issue tree:**
+- Opt-in with `"issue_tree": "issues"` in `.beads/metadata.json`. Git then tracks one file per issue, `.beads/issues/<id>.jsonl`, instead of `issues.jsonl`, so branches that change different issues merge without conflicts. Setup steps: [VCS_INTEGRATION.md](VCS_INTEGRATION.md#per-issue-tree-conflict-free-merges).
+- `issues.jsonl` stays local and untracked, and every mode above still operates on it. After an export, br writes the changed rows into the tree; before a command, br rebuilds `issues.jsonl` from the tree when git changed it.
+- A tree file with merge-conflict markers, more than one line, or an id that does not match its file name is refused. If both `issues.jsonl` and the tree changed to different content since the last reconciliation, br changes neither and returns `SYNC_CONFLICT`.
+- Stage with `git add .beads/` so new issue files are committed.
+
 **Rebuild semantics:**
 - `--rebuild` is valid only with explicit import mode: `br sync --import-only --rebuild`.
 - JSONL is authoritative. After import, entries present only in SQLite are removed; deletion tombstones are preserved when applicable.
